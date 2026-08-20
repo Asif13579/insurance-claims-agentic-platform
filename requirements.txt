@@ -1,0 +1,22 @@
+fastapi
+uvicorn
+langgraph
+langchain
+langchain-openai
+python-dotenv
+pydantic
+httpx
+
+# =====================================
+# Configuration
+# =====================================
+pydantic
+pydantic-settings
+python-dotenv
+
+# =====================================
+# Database
+# =====================================
+sqlalchemy
+psycopg2-binary
+alembic
