@@ -99,3 +99,72 @@ async def test_claim_agent_preserves_state():
     assert result["customer_id"] == "CUS-004"
     assert result["customer_message"] == "I had a car accident."
     assert "claim_decision" in result
+
+
+@pytest.mark.asyncio
+async def test_claim_agent_approves_matching_extracted_data():
+
+    agent = ClaimAgent()
+
+    state = {
+        "valid_documents": [
+            {"filename": "police.pdf", "document_type": "police_report"},
+            {"filename": "estimate.pdf", "document_type": "repair_estimate"},
+            {"filename": "photo.jpg", "document_type": "photo"},
+        ],
+        "invalid_documents": [],
+        "missing_documents": [],
+        "consistency_check": {
+            "consistent": True,
+            "issues": [],
+            "reason": "Claim documents are consistent.",
+        },
+        "extracted_data": {
+            "repair_estimate": {
+                "estimated_amount": 45000.0,
+                "incident_date": "2026-08-10",
+            },
+            "police_report": {
+                "incident_date": "2026-08-10",
+            },
+        },
+    }
+
+    result = await agent.process(state)
+
+    assert result["claim_decision"]["decision"] == "APPROVE"
+
+
+@pytest.mark.asyncio
+async def test_claim_agent_rejects_conflicting_extracted_data():
+
+    agent = ClaimAgent()
+
+    state = {
+        "valid_documents": [
+            {"filename": "police.pdf", "document_type": "police_report"},
+            {"filename": "estimate.pdf", "document_type": "repair_estimate"},
+            {"filename": "photo.jpg", "document_type": "photo"},
+        ],
+        "invalid_documents": [],
+        "missing_documents": [],
+        "consistency_check": {
+            "consistent": False,
+            "issues": [
+                "Incident dates conflict between documents."
+            ],
+            "reason": "Incident dates conflict between documents.",
+        },
+        "extracted_data": {
+            "repair_estimate": {
+                "incident_date": "2026-08-10",
+            },
+            "police_report": {
+                "incident_date": "2026-08-15",
+            },
+        },
+    }
+
+    result = await agent.process(state)
+
+    assert result["claim_decision"]["decision"] == "MANUAL_REVIEW"

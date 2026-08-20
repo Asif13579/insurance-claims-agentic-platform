@@ -204,3 +204,106 @@ async def test_document_intelligence_preserves_existing_state():
 
     assert "document_results" in result
     assert "extracted_data" in result
+
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+from app.agents.document_intelligence_agent import (
+    DocumentIntelligenceAgent,
+)
+from app.models.document_result import DocumentExtraction
+
+
+@pytest.mark.asyncio
+async def test_document_intelligence_extracts_structured_data_with_llm():
+
+    structured_llm = MagicMock()
+
+    structured_llm.ainvoke = AsyncMock(
+        return_value=DocumentExtraction(
+            incident_type="vehicle_accident",
+            incident_date="2026-08-15",
+            incident_location="Bangalore",
+            estimated_amount=50000,
+            vehicle="Honda City",
+        )
+    )
+
+    llm = MagicMock()
+
+    llm.with_structured_output.return_value = structured_llm
+
+    agent = DocumentIntelligenceAgent(llm=llm)
+
+    state = {
+        "claim_id": "CLM-DOC-001",
+        "valid_documents": [
+            {
+                "filename": "repair_estimate.pdf",
+                "document_type": "repair_estimate",
+                "content": (
+                    "Honda City repair estimate. "
+                    "Accident date: 2026-08-15. "
+                    "Location: Bangalore. "
+                    "Estimated repair cost: 50000."
+                ),
+            }
+        ],
+    }
+
+    result = await agent.process(state)
+
+    extraction = result["extracted_data"]["repair_estimate"]
+
+    assert extraction["incident_type"] == "vehicle_accident"
+    assert extraction["incident_date"] == "2026-08-15"
+    assert extraction["incident_location"] == "Bangalore"
+    assert extraction["estimated_amount"] == 50000
+    assert extraction["vehicle"] == "Honda City"
+
+    llm.with_structured_output.assert_called_once_with(
+        DocumentExtraction
+    )
+
+    structured_llm.ainvoke.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_document_intelligence_extracts_repair_amount_with_llm():
+
+    structured_llm = MagicMock()
+
+    structured_llm.ainvoke = AsyncMock(
+        return_value=DocumentExtraction(
+            vehicle="Honda City",
+            incident_date="2026-08-10",
+            estimated_amount=85000,
+        )
+    )
+
+    llm = MagicMock()
+    llm.with_structured_output.return_value = structured_llm
+
+    agent = DocumentIntelligenceAgent(llm=llm)
+
+    state = {
+        "valid_documents": [
+            {
+                "filename": "repair_estimate.pdf",
+                "document_type": "repair_estimate",
+                "content": """
+                Vehicle: Honda City
+                Accident date: 2026-08-10
+                Estimated repair cost: 85000
+                """,
+            }
+        ]
+    }
+
+    result = await agent.process(state)
+
+    extraction = result["extracted_data"]["repair_estimate"]
+
+    assert extraction["vehicle"] == "Honda City"
+    assert extraction["incident_date"] == "2026-08-10"
+    assert extraction["estimated_amount"] == 85000

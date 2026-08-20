@@ -30,8 +30,10 @@ class ClaimService:
         # 3. Persist final result
         final_decision = None
 
-        if result.get("final_claim"):
-            final_decision = result.get("status")
+        claim_decision = result.get("claim_decision")
+
+        if claim_decision:
+            final_decision = claim_decision.get("decision")
 
         self.repository.update_claim(
             claim_id=claim_id,
@@ -40,6 +42,15 @@ class ClaimService:
             final_decision=final_decision,
         )
 
+        # Debug
+        print("[SERVICE] Result keys:", sorted(result.keys()))
+        print("[SERVICE] Claim decision:", result.get("claim_decision"))
+        print("[SERVICE] Document results:", result.get("document_results"))
+        print("[SERVICE] Review:", result.get("review"))
+        print("[SERVICE] Final response:", result.get("final_response"))
+
+        # IMPORTANT:
+        # Return the complete LangGraph state.
         return result
 
     def get_claim(self, claim_id: str):

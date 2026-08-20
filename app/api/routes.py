@@ -5,6 +5,10 @@ from app.config.database import get_db
 from app.schemas.claim_schema import ClaimProcessRequest
 from app.services.claim_service import ClaimService
 
+from app.schemas.claim_response_schema import (
+    ClaimResponse,
+    ClaimSummaryResponse,
+)
 
 router = APIRouter(
     prefix="/claims",
@@ -12,7 +16,7 @@ router = APIRouter(
 )
 
 
-@router.post("")
+@router.post("",response_model=ClaimResponse,)
 async def process_claim(
     request: ClaimProcessRequest,
     db: Session = Depends(get_db),
@@ -41,7 +45,10 @@ async def process_claim(
     return result
 
 
-@router.get("/{claim_id}")
+@router.get(
+    "/{claim_id}",
+    response_model=ClaimSummaryResponse,
+)
 def get_claim(
     claim_id: str,
     db: Session = Depends(get_db),

@@ -126,3 +126,71 @@ async def test_decision_agent_preserves_state():
     assert result["customer_data"]["name"] == "Test Customer"
     assert result["claim_decision"]["decision"] == "APPROVE"
     assert "final_response" in result
+
+@pytest.mark.asyncio
+async def test_decision_agent_marks_approved_claim_complete():
+
+    agent = DecisionAgent()
+
+    state = {
+        "claim_decision": {
+            "decision": "APPROVE",
+            "reason": "Claim passed validation.",
+        },
+    }
+
+    result = await agent.process(state)
+
+    assert result["status"] == "APPROVED"
+    assert result["claim_complete"] is True
+
+
+@pytest.mark.asyncio
+async def test_decision_agent_marks_missing_documents_incomplete():
+
+    agent = DecisionAgent()
+
+    state = {
+        "claim_decision": {
+            "decision": "REQUEST_MORE_INFORMATION",
+            "reason": "Required documents are missing.",
+            "missing_documents": ["photo"],
+        },
+    }
+
+    result = await agent.process(state)
+
+    assert result["status"] == "NEEDS_DOCUMENTS"
+    assert result["claim_complete"] is False
+
+
+@pytest.mark.asyncio
+async def test_decision_agent_marks_manual_review_incomplete():
+
+    agent = DecisionAgent()
+
+    state = {
+        "claim_decision": {
+            "decision": "MANUAL_REVIEW",
+            "reason": "Documents are inconsistent.",
+        },
+    }
+
+    result = await agent.process(state)
+
+    assert result["status"] == "NEEDS_REVIEW"
+    assert result["claim_complete"] is False
+
+
+
+@pytest.mark.asyncio
+async def test_decision_agent_marks_missing_decision_as_error():
+
+    agent = DecisionAgent()
+
+    state = {}
+
+    result = await agent.process(state)
+
+    assert result["status"] == "ERROR"
+    assert result["claim_complete"] is False

@@ -41,19 +41,21 @@ async def decision_node(state: ClaimState) -> ClaimState:
 
 
 def route_after_documents(state: ClaimState) -> str:
-    """
-    Missing required documents should skip consistency/review
-    and go directly to the final decision.
-    """
+
+    if state.get("invalid_documents"):
+        return "review"
 
     if state.get("missing_documents"):
-        return "decision"
+        return "claim"
 
     return "consistency"
 
 
 def route_after_consistency(state: ClaimState) -> str:
-    consistency_check = state.get("consistency_check") or {}
+
+    consistency_check = state.get(
+        "consistency_check"
+    ) or {}
 
     if consistency_check.get("consistent") is True:
         return "claim"
@@ -65,41 +67,51 @@ def build_claim_graph():
 
     graph = StateGraph(ClaimState)
 
-    # Nodes
     graph.add_node("intake", intake_node)
     graph.add_node("documents", document_node)
     graph.add_node(
         "document_intelligence",
         document_intelligence_node,
     )
-    graph.add_node("consistency", consistency_node)
-    graph.add_node("claim", claim_node)
-    graph.add_node("review", review_node)
-    graph.add_node("decision", decision_node)
+    graph.add_node(
+        "consistency",
+        consistency_node,
+    )
+    graph.add_node(
+        "claim",
+        claim_node,
+    )
+    graph.add_node(
+        "review",
+        review_node,
+    )
+    graph.add_node(
+        "decision",
+        decision_node,
+    )
 
-    # Entry
     graph.set_entry_point("intake")
 
-    # Intake → document validation
-    graph.add_edge("intake", "documents")
+    graph.add_edge(
+        "intake",
+        "documents",
+    )
 
-    # Document validation → intelligence
     graph.add_edge(
         "documents",
         "document_intelligence",
     )
 
-    # Missing documents bypass consistency/review
     graph.add_conditional_edges(
         "document_intelligence",
         route_after_documents,
         {
-            "decision": "decision",
+            "review": "review",
+            "claim": "claim",
             "consistency": "consistency",
         },
     )
 
-    # Consistency → claim/review
     graph.add_conditional_edges(
         "consistency",
         route_after_consistency,
@@ -109,10 +121,19 @@ def build_claim_graph():
         },
     )
 
-    # Final decision
-    graph.add_edge("claim", "decision")
-    graph.add_edge("review", "decision")
+    graph.add_edge(
+        "claim",
+        "decision",
+    )
 
-    graph.add_edge("decision", END)
+    graph.add_edge(
+        "review",
+        "decision",
+    )
+
+    graph.add_edge(
+        "decision",
+        END,
+    )
 
     return graph.compile()

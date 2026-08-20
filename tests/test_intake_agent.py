@@ -343,3 +343,43 @@ async def test_intake_agent_does_not_invent_missing_information():
     assert customer_data["incident_location"] is None
     assert customer_data["estimated_amount"] is None
     assert customer_data["hospitalized"] is None
+
+
+@pytest.mark.asyncio
+async def test_intake_agent_extracts_structured_data_with_llm():
+
+    structured_llm = MagicMock()
+
+    structured_llm.ainvoke = AsyncMock(
+        return_value=CustomerData(
+            incident_type="vehicle_accident",
+            incident_date="2026-08-15",
+            incident_location="Bangalore",
+            hospitalized=True,
+            hospital_name="City Hospital",
+            diagnosis="Fracture",
+            treatment="Surgery",
+            estimated_amount=50000,
+            description="I had a car accident and was hospitalized."
+        )
+    )
+
+    llm = MagicMock()
+    llm.with_structured_output.return_value = structured_llm
+
+    agent = IntakeAgent(llm=llm)
+
+    state = {
+        "claim_id": "CLM-1002",
+        "customer_id": "CUST-1002",
+        "customer_message": (
+            "I had a car accident on August 15 in Bangalore. "
+            "I was hospitalized at City Hospital with a fracture "
+            "and underwent surgery. The estimated cost is 50000."
+        ),
+    }
+
+    result = await agent.process(state)
+
+    assert result["status"] == "RECEIVED"
+    assert result["customer_data"]["hospitalized"] is True

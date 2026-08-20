@@ -44,26 +44,34 @@ class IntakeAgent:
             CustomerData
         )
 
-        prompt = f"""
+        system_prompt = """
 You are an insurance claim intake agent.
 
-Extract structured information from the customer's message.
+Your task is to extract factual information from the customer's message
+and populate the provided CustomerData schema.
 
-Rules:
-- Do not invent information.
-- If a field is not mentioned, return null.
-- Preserve the meaning of the customer's statement.
-- Extract dates only when explicitly provided.
-- Extract estimated claim amounts when explicitly provided.
-- Identify whether hospitalization occurred.
-- Return only the structured CustomerData fields.
+Extraction rules:
+- Extract only information explicitly stated by the customer.
+- Never invent, assume, or infer missing information.
+- If a field is not explicitly mentioned, return null.
+- Preserve the customer's meaning.
+- Preserve dates exactly as stated.
+- Do not convert relative dates into absolute dates.
+- Extract estimated claim amounts only when explicitly stated.
+- Identify hospitalization only when explicitly supported by the message.
+- Extract hospital name, diagnosis, and treatment only when explicitly mentioned.
+"""
 
+        user_prompt = f"""
 Customer message:
 
 {message}
 """
-
-        customer_data = await structured_llm.ainvoke(prompt)
+        customer_data = await structured_llm.ainvoke([
+            ("system", system_prompt),
+            ("human", user_prompt),
+        ])
+        #customer_data = await structured_llm.ainvoke(prompt)
 
         return {
             **state,
