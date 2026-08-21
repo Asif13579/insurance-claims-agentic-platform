@@ -383,3 +383,36 @@ async def test_intake_agent_extracts_structured_data_with_llm():
 
     assert result["status"] == "RECEIVED"
     assert result["customer_data"]["hospitalized"] is True
+
+
+@pytest.mark.asyncio
+async def test_intake_agent_uses_customer_data_schema():
+
+    structured_llm = MagicMock()
+
+    structured_llm.ainvoke = AsyncMock(
+        return_value=CustomerData(
+            description="I had a car accident."
+        )
+    )
+
+    llm = MagicMock()
+    llm.with_structured_output.return_value = structured_llm
+
+    agent = IntakeAgent(llm=llm)
+
+    state = {
+        "claim_id": "CLM-SCHEMA-001",
+        "customer_id": "CUS-SCHEMA-001",
+        "customer_message": "I had a car accident.",
+    }
+
+    result = await agent.process(state)
+
+    assert result["customer_data"]["description"] == (
+        "I had a car accident."
+    )
+
+    llm.with_structured_output.assert_called_once_with(
+        CustomerData
+    )

@@ -307,3 +307,35 @@ async def test_document_intelligence_extracts_repair_amount_with_llm():
     assert extraction["vehicle"] == "Honda City"
     assert extraction["incident_date"] == "2026-08-10"
     assert extraction["estimated_amount"] == 85000
+
+
+@pytest.mark.asyncio
+async def test_document_intelligence_reads_document_content():
+    agent = DocumentIntelligenceAgent()
+
+    state = {
+        "valid_documents": [
+            {
+                "filename": "police_report.pdf",
+                "document_type": "police_report",
+                "content": (
+                    "Accident occurred on August 15 "
+                    "in Bangalore."
+                ),
+            }
+        ]
+    }
+
+    result = await agent.process(state)
+
+    assert len(result["document_results"]) == 1
+
+    assert (
+        result["document_results"][0]["filename"]
+        == "police_report.pdf"
+    )
+
+    assert (
+        result["document_results"][0]["document_type"]
+        == "police_report"
+    )

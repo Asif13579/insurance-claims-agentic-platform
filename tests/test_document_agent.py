@@ -150,3 +150,35 @@ async def test_document_agent_rejects_missing_filename():
 
     assert "police_report" in result["missing_documents"]
     assert result["status"] == "NEEDS_DOCUMENTS"
+
+
+@pytest.mark.asyncio
+async def test_document_agent_preserves_document_content():
+
+    agent = DocumentAgent()
+
+    state = {
+        "claim_id": "CLM-DOC-006",
+        "customer_id": "CUS-006",
+        "documents": [
+            {
+                "filename": "car_photo.jpg",
+                "document_type": "photo",
+                "content": b"image-bytes",
+            }
+        ],
+    }
+
+    result = await agent.process(state)
+
+    assert result["valid_documents"][0]["filename"] == (
+        "car_photo.jpg"
+    )
+
+    assert result["valid_documents"][0]["document_type"] == (
+        "photo"
+    )
+
+    assert result["valid_documents"][0]["content"] == (
+        b"image-bytes"
+    )

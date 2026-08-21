@@ -1,9 +1,4 @@
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-def test_inconsistent_claim_requires_review():
+def test_inconsistent_claim_requires_review(client):
 
     payload = {
         "claim_id": "CLM-TEST-005",
@@ -36,7 +31,7 @@ def test_inconsistent_claim_requires_review():
     assert data["claim_complete"] is False
 
 
-def test_complete_claim_returns_approve():
+def test_complete_claim_returns_approve(client):
 
     payload = {
         "claim_id": "CLM-API-001",
@@ -68,7 +63,7 @@ def test_complete_claim_returns_approve():
     assert data["claim_decision"]["decision"] == "APPROVE"
 
 
-def test_missing_documents_requests_information():
+def test_missing_documents_requests_information(client):
 
     payload = {
         "claim_id": "CLM-API-002",
@@ -93,7 +88,8 @@ def test_missing_documents_requests_information():
         == "REQUEST_MORE_INFORMATION"
     )
 
-def test_wrong_document_returns_manual_review():
+
+def test_wrong_document_returns_manual_review(client):
 
     payload = {
         "claim_id": "CLM-API-003",
@@ -127,7 +123,7 @@ def test_wrong_document_returns_manual_review():
     )
 
 
-def test_complete_claim_runs_document_intelligence():
+def test_complete_claim_runs_document_intelligence(client):
 
     payload = {
         "claim_id": "CLM-DOC-INT-001",

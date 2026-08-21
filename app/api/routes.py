@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.config.database import get_db
 from app.schemas.claim_schema import ClaimProcessRequest
 from app.services.claim_service import ClaimService
-
 from app.schemas.claim_response_schema import (
     ClaimResponse,
     ClaimSummaryResponse,
@@ -13,10 +13,15 @@ from app.schemas.claim_response_schema import (
 router = APIRouter(
     prefix="/claims",
     tags=["Claims"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
-@router.post("",response_model=ClaimResponse,)
+@router.post(
+    "",
+    response_model=ClaimResponse,
+    #dependencies=[Depends(get_current_user)],
+)
 async def process_claim(
     request: ClaimProcessRequest,
     db: Session = Depends(get_db),
@@ -48,6 +53,7 @@ async def process_claim(
 @router.get(
     "/{claim_id}",
     response_model=ClaimSummaryResponse,
+    #dependencies=[Depends(get_current_user)],
 )
 def get_claim(
     claim_id: str,

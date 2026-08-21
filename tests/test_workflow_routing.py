@@ -33,15 +33,8 @@ def test_missing_consistency_check_routes_to_review():
 
     assert route_after_consistency(state) == "review"
 
-from fastapi.testclient import TestClient
 
-from app.main import app
-
-
-client = TestClient(app)
-
-
-def test_complete_claim_reaches_final_decision():
+def test_complete_claim_reaches_final_decision(client):
 
     payload = {
         "claim_id": "CLM-FULL-001",
@@ -72,7 +65,8 @@ def test_complete_claim_reaches_final_decision():
     assert data["claim_decision"]["decision"] == "APPROVE"
     assert "final_response" in data
 
-def test_inconsistent_claim_reaches_review_and_final_decision():
+
+def test_inconsistent_claim_reaches_review_and_final_decision(client):
 
     payload = {
         "claim_id": "CLM-FULL-002",
