@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class DocumentRequest(BaseModel):
     filename: str
     document_type: str
+    content: str | None = None
 
 
 class ClaimRequest(BaseModel):

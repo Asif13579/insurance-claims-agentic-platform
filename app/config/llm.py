@@ -1,17 +1,16 @@
-import os
 from langchain_openrouter import ChatOpenRouter
+from app.config.settings import settings
+
 
 def get_llm() -> ChatOpenRouter:
-    api_key=os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is not configured")
-    model=os.getenv("OPENROUTER_MODEL","openai/gpt-4o")
+
+    if not settings.OPENROUTER_API_KEY:
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not configured"
+        )
+
     return ChatOpenRouter(
-        model=model,
-        api_key=api_key,
-        temperature=0
+        model=settings.OPENROUTER_MODEL,
+        api_key=settings.OPENROUTER_API_KEY,
+        temperature=0,
     )
-
-
-# def get_llm():
-#     return ChatOpenRouter(model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o"),api_key=os.getenv("OPENROUTER_API_KEY"),temperature=0,)

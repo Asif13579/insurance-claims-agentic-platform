@@ -53,12 +53,23 @@ class DocumentAgent:
                 })
 
                 continue
-
             # Store normalized dictionary
-            valid_documents.append({
+            valid_document = {
                 "filename": filename,
-                "document_type": document_type
-            })
+                "document_type": document_type,
+            }
+
+            if isinstance(document, dict) and "content" in document:
+                valid_document["content"] = document["content"]
+
+            valid_documents.append(valid_document)
+            # Store normalized dictionary
+            # valid_documents.append({
+            #     "filename": filename,
+            #     "document_type": document_type
+            # })
+
+            
 
         # -----------------------------------------
         # Determine missing documents

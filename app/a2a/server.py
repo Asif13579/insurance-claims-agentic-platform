@@ -10,18 +10,10 @@ from app.agents.review_agent import ReviewAgent
 from app.agents.decision_agent import DecisionAgent
 
 
-def create_a2a_client():
+def create_a2a_client(llm=None):
 
-    # agents = {
-    #     "intake_agent": IntakeAgent(),
-    #     "document_agent": DocumentAgent(),
-    #     "consistency_agent": ConsistencyAgent(),
-    #     "claim_agent": ClaimAgent(),
-    #     "review_agent": ReviewAgent(),
-    #     "decision_agent": DecisionAgent(),
-    # }
     agents = {
-        "intake_agent": IntakeAgent(),
+        "intake_agent": IntakeAgent(llm=llm),
         "document_agent": DocumentAgent(),
         "document_intelligence_agent": DocumentIntelligenceAgent(),
         "consistency_agent": ConsistencyAgent(),

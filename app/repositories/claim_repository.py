@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.claim import Claim
@@ -16,36 +17,34 @@ class ClaimRepository:
         self,
         claim_id: str,
         customer_id: str,
-        customer_message: str
+        customer_message: str,
     ):
-
         claim = Claim(
             claim_id=claim_id,
             customer_id=customer_id,
             customer_message=customer_message,
-            status="RECEIVED"
+            status="RECEIVED",
         )
 
         self.db.add(claim)
-        self.db.commit()
-        self.db.refresh(claim)
 
-        return claim
+        try:
+            self.db.commit()
+            self.db.refresh(claim)
+            return claim
+
+        except IntegrityError:
+            self.db.rollback()
+            raise
 
     # -----------------------------------------
     # Get
     # -----------------------------------------
 
-    def get_claim(
-        self,
-        claim_id: str
-    ):
-
+    def get_claim(self, claim_id: str):
         return (
             self.db.query(Claim)
-            .filter(
-                Claim.claim_id == claim_id
-            )
+            .filter(Claim.claim_id == claim_id)
             .first()
         )
 
@@ -58,28 +57,24 @@ class ClaimRepository:
         claim_id: str,
         status: str,
         claim_complete: bool,
-        final_decision: str | None = None
+        final_decision: str | None = None,
     ):
-
-        claim = self.get_claim(
-            claim_id
-        )
+        claim = self.get_claim(claim_id)
 
         if not claim:
             return None
 
         claim.status = status
-
-        claim.claim_complete = (
-            str(claim_complete).lower()
-        )
+        claim.claim_complete = str(claim_complete).lower()
 
         if final_decision is not None:
-            claim.final_decision = (
-                final_decision
-            )
+            claim.final_decision = final_decision
 
-        self.db.commit()
-        self.db.refresh(claim)
+        try:
+            self.db.commit()
+            self.db.refresh(claim)
+            return claim
 
-        return claim
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise

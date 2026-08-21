@@ -20,3 +20,8 @@ python-dotenv
 sqlalchemy
 psycopg2-binary
 alembic
+pypdffium2
+
+
+python-jose[cryptography]
+pwdlib[argon2]

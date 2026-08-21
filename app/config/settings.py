@@ -11,10 +11,14 @@ class Settings(BaseSettings):
     DEBUG: bool=True
 
     # ==========================================
-    # OpenAI / LLM
+    # OpenRouter / LLM
     # ==========================================
-    OPENAI_API_KEY: str=""
-    OPENAI_MODEL:str="gpt-4o"
+
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openai/gpt-4o"
+
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o"
 
     # Anthropic
     ANTHROPIC_API_KEY: str=""
@@ -27,7 +31,8 @@ class Settings(BaseSettings):
     # ==========================================
     # PostgreSQL
     # ==========================================
-    DATABASE_URL: str=("postgresql+psycopg2://postgres:Welcome$401@localhost:5432/telecom_ai")
+    #DATABASE_URL: str=("postgresql+psycopg2://postgres:Welcome$401@localhost:5432/telecom_ai")
+    DATABASE_URL: str = ""
 
     # ==========================================
     # Redis Memory
@@ -80,6 +85,13 @@ class Settings(BaseSettings):
     # ==========================================
     LOG_LEVEL: str="INFO"
     model_config=SettingsConfigDict(env_file='.env',case_sensitive=True,extra="ignore")
+    
+    # ==========================================
+    # Authentication
+    # ==========================================
+    JWT_SECRET_KEY: str = "CHANGE-ME-IN-PRODUCTION"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
 @lru_cache
 def get_settings() -> Settings:

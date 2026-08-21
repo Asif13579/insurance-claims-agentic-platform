@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.models.claim_state import ClaimState
 from app.repositories.claim_repository import ClaimRepository
 from app.graph.workflow import build_claim_graph
@@ -14,20 +16,26 @@ class ClaimService:
 
         claim_id = state["claim_id"]
 
-        # 1. Create initial DB record
-        claim = self.repository.get_claim(claim_id)
+        # Reject duplicate claims before running the workflow
+        existing_claim = self.repository.get_claim(claim_id)
 
-        if not claim:
-            self.repository.create_claim(
-                claim_id=claim_id,
-                customer_id=state["customer_id"],
-                customer_message=state["customer_message"],
+        if existing_claim:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Claim {claim_id} already exists",
             )
 
-        # 2. Run LangGraph
+        # Create initial DB record
+        self.repository.create_claim(
+            claim_id=claim_id,
+            customer_id=state["customer_id"],
+            customer_message=state["customer_message"],
+        )
+
+        # Run LangGraph
         result = await self.claim_graph.ainvoke(state)
 
-        # 3. Persist final result
+        # Persist final result
         final_decision = None
 
         claim_decision = result.get("claim_decision")
@@ -42,15 +50,12 @@ class ClaimService:
             final_decision=final_decision,
         )
 
-        # Debug
         print("[SERVICE] Result keys:", sorted(result.keys()))
         print("[SERVICE] Claim decision:", result.get("claim_decision"))
         print("[SERVICE] Document results:", result.get("document_results"))
         print("[SERVICE] Review:", result.get("review"))
         print("[SERVICE] Final response:", result.get("final_response"))
 
-        # IMPORTANT:
-        # Return the complete LangGraph state.
         return result
 
     def get_claim(self, claim_id: str):
