@@ -3,6 +3,10 @@ from fastapi import HTTPException
 from app.models.claim_state import ClaimState
 from app.repositories.claim_repository import ClaimRepository
 from app.graph.workflow import build_claim_graph
+from app.core.logging import get_logger
+
+
+logger = get_logger("claim.service")
 
 
 class ClaimService:
@@ -16,10 +20,20 @@ class ClaimService:
 
         claim_id = state["claim_id"]
 
+        logger.info(
+            "claim_started claim_id=%s",
+            claim_id,
+        )
+
         # Reject duplicate claims before running the workflow
         existing_claim = self.repository.get_claim(claim_id)
 
         if existing_claim:
+            logger.warning(
+                "duplicate_claim claim_id=%s",
+                claim_id,
+            )
+
             raise HTTPException(
                 status_code=409,
                 detail=f"Claim {claim_id} already exists",
@@ -30,6 +44,11 @@ class ClaimService:
             claim_id=claim_id,
             customer_id=state["customer_id"],
             customer_message=state["customer_message"],
+        )
+
+        logger.info(
+            "claim_record_created claim_id=%s",
+            claim_id,
         )
 
         # Run LangGraph
@@ -50,11 +69,21 @@ class ClaimService:
             final_decision=final_decision,
         )
 
-        print("[SERVICE] Result keys:", sorted(result.keys()))
-        print("[SERVICE] Claim decision:", result.get("claim_decision"))
-        print("[SERVICE] Document results:", result.get("document_results"))
-        print("[SERVICE] Review:", result.get("review"))
-        print("[SERVICE] Final response:", result.get("final_response"))
+        # Structured observability logging
+        logger.info(
+            "claim_completed claim_id=%s status=%s decision=%s",
+            claim_id,
+            result.get("status"),
+            final_decision,
+        )
+
+        logger.info(
+            "claim_workflow_summary claim_id=%s "
+            "documents=%s review=%s",
+            claim_id,
+            len(result.get("document_results", [])),
+            bool(result.get("review")),
+        )
 
         return result
 

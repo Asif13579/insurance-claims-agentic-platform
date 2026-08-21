@@ -1,8 +1,12 @@
+import re
 from app.models.claim_state import ClaimState
 from app.models.document_result import (
     DocumentExtraction,
     DocumentResult,
 )
+import time
+from app.core.logging import get_logger
+logger=get_logger("agent.document_intelligence")
 
 
 class DocumentIntelligenceAgent:
@@ -21,14 +25,97 @@ class DocumentIntelligenceAgent:
 
     def __init__(self, llm=None):
         self.llm = llm
+    
+    def _deterministic_extract(
+        self,
+        document_type: str,
+        content: str,
+    ) -> DocumentExtraction:
+
+        text = content or ""
+
+        def find(pattern: str):
+            match = re.search(
+                pattern,
+                text,
+                flags=re.IGNORECASE | re.MULTILINE,
+            )
+            return match.group(1).strip() if match else None
+
+        incident_date = find(
+            r"(?:incident date|accident date|date of accident)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        incident_location = find(
+            r"(?:incident location|accident location|location)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        incident_type = find(
+            r"(?:incident type|accident type|type of incident)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        vehicle = find(
+            r"(?:vehicle|car)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        estimated_amount_text = find(
+            r"(?:estimated repair cost|estimated amount|"
+            r"repair estimate|total estimate)"
+            r"\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)"
+        )
+
+        hospital_name = find(
+            r"(?:hospital name|hospital)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        diagnosis = find(
+            r"(?:diagnosis|diagnosed with)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        treatment = find(
+            r"(?:treatment|treatment provided)"
+            r"\s*[:\-]\s*([^\r\n]+)"
+        )
+
+        estimated_amount = None
+
+        if estimated_amount_text:
+            try:
+                estimated_amount = float(
+                    estimated_amount_text.replace(",", "")
+                )
+            except ValueError:
+                estimated_amount = None
+
+        return DocumentExtraction(
+            incident_type=incident_type,
+            incident_date=incident_date,
+            incident_location=incident_location,
+            estimated_amount=estimated_amount,
+            vehicle=vehicle,
+            hospital_name=hospital_name,
+            diagnosis=diagnosis,
+            treatment=treatment,
+            additional_data={
+                "extraction_method": "deterministic",
+                "document_type": document_type,
+            },
+        )
 
     async def process(
         self,
         state: ClaimState
     ) -> ClaimState:
-
+        start = time.perf_counter()
         documents = state.get("valid_documents", [])
-
+        claim_id = state.get("claim_id","unknown",)
+        logger.info("claim_id=%s agent=document_intelligence ""started documents=%d",claim_id,len(documents),)
         document_results = []
         extracted_data = {}
 
@@ -94,7 +181,9 @@ class DocumentIntelligenceAgent:
 
             if self.llm is None:
 
-                extraction = DocumentExtraction()
+                extraction = self._deterministic_extract(
+                    document_type=document_type, content=document_content,
+                )
 
             # -----------------------------------------
             # LLM structured extraction
@@ -172,8 +261,21 @@ Document content:
         # -----------------------------------------
         # Update ClaimState
         # -----------------------------------------
+        duration_ms = (
+            time.perf_counter() - start
+        ) * 1000
+
+        logger.info(
+            "claim_id=%s agent=document_intelligence "
+            "completed extracted=%d duration_ms=%.2f",
+            claim_id,
+            len(extracted_data),
+            duration_ms,
+        )
 
         state["document_results"] = document_results
         state["extracted_data"] = extracted_data
 
         return state
+
+    

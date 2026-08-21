@@ -1,5 +1,7 @@
 from app.models.claim_state import ClaimState
-
+import time
+from app.core.logging import get_logger
+logger = get_logger("agent.consistency")
 
 class ConsistencyAgent:
 
@@ -17,9 +19,17 @@ class ConsistencyAgent:
     }
 
     async def process(self, state: ClaimState) -> ClaimState:
-
+        start = time.perf_counter()
         documents = state.get("documents", [])
+        claim_id = state.get(
+            "claim_id",
+            "unknown",
+        )
 
+        logger.info(
+            "claim_id=%s agent=consistency started",
+            claim_id,
+        )
         document_types = set()
 
         for document in documents:
@@ -219,6 +229,17 @@ class ConsistencyAgent:
             else "; ".join(issues)
         )
 
+        duration_ms = (
+            time.perf_counter() - start
+        ) * 1000
+
+        logger.info(
+            "claim_id=%s agent=consistency "
+            "completed result=%s duration_ms=%.2f",
+            claim_id,
+            state.get("consistency_check"),
+            duration_ms,
+        )
         state["consistency_check"] = {
             "consistent": consistent,
             "issues": issues,

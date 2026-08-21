@@ -1,14 +1,19 @@
+# =====================================
+# API
+# =====================================
 fastapi
-uvicorn
-langgraph
-langchain
-langchain-openai
-python-dotenv
-pydantic
+uvicorn[standard]
 httpx
 
 # =====================================
-# Configuration
+# Agentic Workflow / LLM
+# =====================================
+langgraph
+langchain
+langchain-openai
+
+# =====================================
+# Configuration / Validation
 # =====================================
 pydantic
 pydantic-settings
@@ -20,8 +25,14 @@ python-dotenv
 sqlalchemy
 psycopg2-binary
 alembic
-pypdffium2
 
+# =====================================
+# Document Processing
+# =====================================
+pypdfium2
 
+# =====================================
+# Authentication
+# =====================================
 python-jose[cryptography]
 pwdlib[argon2]

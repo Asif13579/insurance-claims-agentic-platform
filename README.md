@@ -1,94 +1,107 @@
 # Insurance Claims Agentic Platform
 
-An AI-powered insurance claims processing platform built with **FastAPI, LangGraph, and Agent-to-Agent (A2A) communication**.
+An AI-powered insurance claims processing platform built with **FastAPI, LangGraph, PostgreSQL, and Agent-to-Agent (A2A) communication**.
 
-The platform orchestrates multiple specialized agents to process an insurance claim from customer intake through document validation, document intelligence, consistency checking, claim assessment, review, and final decision.
+The platform demonstrates an end-to-end agentic claims workflow in which specialized agents collaborate to process an insurance claim from intake through document validation, document intelligence, consistency analysis, claim assessment, review, and final decision.
+
+The project is designed as a **working agentic platform prototype**, with deterministic document extraction available as a reliable fallback when an LLM/API key is not configured.
 
 ---
 
-## Project Status
+# Project Status
 
-### Implemented
+## Implemented
+
+The core claims-processing platform is implemented and integrated end-to-end.
+
+### API & Application
 
 - FastAPI REST API
+- Claim creation and retrieval
 - Claim lifecycle management
+- Request/response validation
+- Authentication
+- Structured application logging
+- Service/repository architecture
+- Duplicate claim protection
+
+### Agentic Architecture
+
 - Shared `ClaimState`
-- SQLAlchemy repository/service layer
-- Intake Agent
-- Document Agent
-- Document Intelligence Agent
-- Consistency Agent
-- Claim Agent
-- Review Agent
-- Decision Agent
+- Specialized agents with clear responsibilities
+- Agent-to-Agent (A2A) communication layer
 - LangGraph workflow orchestration
 - Conditional workflow routing
-- A2A agent communication
-- Automated unit and workflow tests
+- Review routing for inconsistent claims
+- Final decision generation
 
-### In Progress
+### Specialized Agents
 
-- Production-grade LLM intake
-- Real PDF extraction
-- OCR
-- Image/document validation
-- Advanced document classification
-- LLM-based document extraction
-- Customer/document consistency analysis
-- Final adjuster-ready claim package
+- **Intake Agent**
+  - Processes initial claim information
+  - Identifies customer/claim information
+  - Determines document requirements
 
-### Planned
+- **Document Agent**
+  - Validates submitted documents
+  - Identifies missing/invalid documents
+  - Routes valid documents for further processing
 
-- PostgreSQL production deployment
-- Authentication and authorization
-- Observability and tracing
-- Docker
-- CI/CD
-- Production cloud deployment
+- **Document Intelligence Agent**
+  - Reads available document content
+  - Performs deterministic structured extraction
+  - Extracts fields such as:
+    - incident date
+    - incident location
+    - vehicle
+    - incident type
+    - estimated amount
+    - hospital information
+    - diagnosis
+    - treatment
+  - Supports LLM-based extraction when configured
+  - Uses deterministic fallback extraction when an LLM is unavailable
 
----
+- **Consistency Agent**
+  - Compares claim information and extracted document information
+  - Identifies inconsistencies
+  - Determines whether additional review is required
 
-# 1. Architecture
+- **Claim Agent**
+  - Assesses claim information
+  - Produces claim-level assessment
 
-The platform follows an agentic workflow where each specialized agent performs one responsibility.
+- **Review Agent**
+  - Handles claims requiring additional review
+  - Provides a controlled review path before final decision
+
+- **Decision Agent**
+  - Produces the final claim decision
+  - Supports outcomes such as approval, rejection, or review
+
+### Persistence
+
+- PostgreSQL
+- SQLAlchemy
+- Repository pattern
+- Claim status persistence
+- Final decision persistence
+- Database migrations with Alembic
+
+### Testing
+
+The project has an automated test suite covering:
+
+- Unit tests
+- Agent tests
+- Document extraction tests
+- Workflow tests
+- Routing tests
+- API tests
+- Database/service behavior
+- End-to-end claim processing scenarios
+
+Current test status:
 
 ```text
-                        ┌──────────────────┐
-                        │    FastAPI API    │
-                        └────────┬─────────┘
-                                 │
-                                 ▼
-                        ┌──────────────────┐
-                        │   Claim Service  │
-                        └────────┬─────────┘
-                                 │
-                                 ▼
-                        ┌──────────────────┐
-                        │    LangGraph     │
-                        │     Workflow     │
-                        └────────┬─────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-              ▼                  ▼                  ▼
-        Intake Agent       Document Agent    Document Intelligence
-              │                  │                  │
-              └──────────────────┼──────────────────┘
-                                 │
-                                 ▼
-                       Consistency Agent
-                                 │
-                     ┌───────────┴───────────┐
-                     │                       │
-                Consistent               Inconsistent
-                     │                       │
-                     ▼                       ▼
-                Claim Agent            Review Agent
-                     │                       │
-                     └───────────┬───────────┘
-                                 │
-                                 ▼
-                         Decision Agent
-                                 │
-                                 ▼
-                           Final Result
+103 passed
